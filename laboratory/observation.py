@@ -3,24 +3,36 @@ from datetime import datetime
 import sys
 
 
-@contextmanager
-def Test(observation, raise_exceptions):
-    observation.set_start_time()
-    try:
-        yield observation
-    except Exception as ex:
-        observation.set_exception(ex)
-        if raise_exceptions:
-            raise
+class _SkipObservation(Exception):
+    pass
 
-    finally:
-        observation.set_end_time()
+
+class _Skipped(object):
+    def __repr__(self):
+        return "Skipped"
+
 
 class _Unrecorded(object):
     def __repr__(self):
         return "Unrecorded"
 
+skipped = _Skipped()
 unrecorded = _Unrecorded()
+
+
+@contextmanager
+def Test(observation, raise_exceptions):
+    observation.set_start_time()
+    try:
+        yield observation
+    except _SkipObservation as ex:
+        pass
+    except Exception as ex:
+        observation.set_exception(ex)
+        if raise_exceptions:
+            raise
+    finally:
+        observation.set_end_time()
 
 
 class Observation(object):
@@ -51,6 +63,11 @@ class Observation(object):
 
     def update_context(self, context):
         self.context.update(context)
+
+    def skip_when(self, skip):
+        if skip:
+            self.record(skipped)
+            raise _SkipObservation('Observation intentionally skipped')
 
     @property
     def duration(self):

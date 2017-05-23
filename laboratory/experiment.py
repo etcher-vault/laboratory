@@ -3,7 +3,7 @@ import logging
 import traceback
 
 from laboratory import exceptions
-from laboratory.observation import Observation, Test
+from laboratory.observation import Observation, Test, skipped
 from laboratory.result import Result
 from functools import wraps
 
@@ -35,7 +35,7 @@ class Experiment(object):
         return Test(observation, False)
 
     def run(self):
-        if self._control is None:
+        if self._control is None or self._control.value == skipped:
             raise exceptions.LaboratoryException(
                 'Your experiment must record a control case'
             )
